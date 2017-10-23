@@ -11,10 +11,12 @@ SC_MODULE(master_driver)
     sc_in<bool> rst_i;
     
     sc_in<bool> start_i;		// signal to start transaction
+	sc_in<bool> two_bytes_i;	// set - read/write 2 bytes; unset - read/write 1 byte
     sc_in< sc_uint<7> >  addr_in_bi;	// address of target slave
+	sc_in< sc_uint<8> > inner_addr_in_bi;  // inner target slave address
     sc_in<bool> read_not_write_i;	// transaction type
-    sc_in< sc_uint<8> >  data_in_bi;	// data for writing to slave
-    sc_out< sc_uint<8> >  data_out_bo;	// data read from slave in last transaction
+    sc_in< sc_uint<16> >  data_in_bi;	// data for writing to slave
+    sc_out< sc_uint<16> >  data_out_bo;	// data read from slave in last transaction
     sc_out<bool> ready_o;		// transaction is not processed now
     sc_out<bool> error_o;		// error in last transaction (not implemented)
     
@@ -28,7 +30,7 @@ SC_MODULE(master_driver)
     {
         // Sequential block
         SC_METHOD(listen_start);
-        sensitive << clk_i.pos() << rst_i.pos() << start_i.pos();
+        sensitive << clk_i.pos() << rst_i.pos();
         
         // Combinational block
         SC_METHOD(output_selector);
