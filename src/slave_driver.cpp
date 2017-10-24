@@ -29,13 +29,13 @@ void slave_driver::emulate_slave()
 		exec_state = IDLE;
 		sda = 1;
 		release_sda = 1;
-		//ready_o.write(1);// DEBUG
+		ready_o.write(1);
     }
     else
     {
 		if (stop_detected)	
 		{
-			//ready_o.write(1); // DEBUG
+			ready_o.write(1);
             exec_state = IDLE;
 			release_sda = 1;
 			/*if (data_type == RDATA && ack == 0)
@@ -59,7 +59,7 @@ void slave_driver::emulate_slave()
 					data_in = data_in_bi.read();
 					exec_state = WAIT_SCL0_INIT;
 					data_type = ADDRESS;
-					//ready_o.write(0);// DEBUG
+					ready_o.write(0);
 					ack = 1;
 				}
 				break;
@@ -235,12 +235,6 @@ void slave_driver::output_selector()
     }
     else
     {
-		if (start_detected)
-		{
-			ready_o.write(1);
-		}
-		else
-						ready_o.write(0);
 		if (!release_sda) 
 		{
 			i2c_sda_io.write(sc_logic(sda));
