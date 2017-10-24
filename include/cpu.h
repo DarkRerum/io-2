@@ -25,6 +25,7 @@ SC_MODULE(CPU)
     
 private:
     void cpu_software();
+	void select_device(unsigned long addr);
 };
 
 #endif // __CPU_H
