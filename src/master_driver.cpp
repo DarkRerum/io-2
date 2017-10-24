@@ -3,7 +3,7 @@
 
 using namespace sc_dt;
 
-static const sc_uint<8> self_addres = 0x55;
+static const sc_uint<8> self_address = 0x55;
 
 enum {
     MAX_ADDRESS_INDEX = 6,
@@ -64,7 +64,7 @@ void master_driver::handle_amba()
 	}
 	else
 	{
-		if (HADDR_bi.read().range(15, 8) == self_addres && HSEL_i.read())
+		if (HADDR_bi.read().range(15, 8) == self_address && HSEL_i.read())
 		{
 			sc_uint<32>* preg = select_reg(HADDR_bi.read().range(7,0));
 			if (HWRITE_i.read())

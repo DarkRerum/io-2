@@ -1,6 +1,6 @@
 #include <systemc.h>
-
 #include <slave_driver.h>
+#include <set>
 
 static bool stop_detected;
 static bool start_detected;
@@ -8,33 +8,76 @@ static bool start_detected;
 static bool sda;
 static bool release_sda;
 
+typedef struct reg_t {
+	sc_uint<8> addr;
+	sc_uint<8> value;
+} reg_t;
+
+static reg_t registers[] = {
+	{0x00, 0xCA}, // temperature_value_msb
+	{0x01, 0xDB}, // temperature_value_lsb
+	{0x02, 0x00}, // status
+	{0x03, 0x00}, // configuration
+	{0x04, 0x00}, // t_high_setpoint_msb
+	{0x05, 0x00}, // t_high_setpoint_lsb
+	{0x06, 0x00}, // t_low_setpoint_msb
+	{0x07, 0x00}, // t_low_setpoint_lsb
+	{0x08, 0x00}, // t_crit_setpoint_msb
+	{0x09, 0x00}, // t_crit_setpoint_lsb
+	{0x0A, 0x00}, // t_hyst_setpoint
+	{0x0B, 0x00}, // id
+	{0x2F, 0x00}  // software_reset
+};
+
+static reg_t & get_reg(sc_uint<8> address)
+{
+	for (size_t i = 0; i < ( sizeof(registers) / sizeof(registers[0]) ); i++) 
+	{
+		if (registers[i].addr == address)
+		{
+			return registers[i];
+		}
+	}
+	return registers[0];
+}
+
+static sc_uint<8> address_pointer;
+
 void slave_driver::emulate_slave()
 {
 	enum {IDLE, WAIT_SCL0_INIT, WAIT_SCL1, WAIT_SCL0};	
-	enum {ADDRESS, WDATA, RDATA};
+	enum {DEVICE_ADDRESS, INNER_ADDRESS, WDATA, RDATA};
 	static const int MAX_DATA_INDEX = 7;
 	static const int ACK_INDEX = 8;
 
-	static sc_uint<16> data_in;
+	//static sc_uint<16> data_in;
 	static int exec_state;
 	static int data_type;
-	static sc_uint<16> data;
+	static sc_uint<8> data_out;
 	static int bit_index;
 	static bool ack;
+
+	static bool repeat_start;
+	static bool read_not_write;
 	
 	//data_out_bo.write(exec_state);
 	
     if (rst_i.read())
-    {	
+    {
+		read_not_write = false;
+		repeat_start = false;
 		exec_state = IDLE;
 		sda = 1;
 		release_sda = 1;
 		ready_o.write(1);
+		address_pointer = 0;
     }
     else
     {
 		if (stop_detected)	
 		{
+			read_not_write = false;
+			repeat_start = false;
 			ready_o.write(1);
             exec_state = IDLE;
 			release_sda = 1;
@@ -56,9 +99,9 @@ void slave_driver::emulate_slave()
 				release_sda = 1;
 				if (start_detected)
 				{
-					data_in = data_in_bi.read();
+					//data_in = data_in_bi.read();
 					exec_state = WAIT_SCL0_INIT;
-					data_type = ADDRESS;
+					data_type = DEVICE_ADDRESS;
 					ready_o.write(0);
 					ack = 1;
 				}
@@ -69,7 +112,7 @@ void slave_driver::emulate_slave()
 				{
 					exec_state = WAIT_SCL1;
 					bit_index = 0;
-					data = 0;
+					data_out = 0;
 				}
 				break;
 
@@ -79,8 +122,15 @@ void slave_driver::emulate_slave()
 					exec_state = WAIT_SCL0;
 					if (data_type != RDATA && bit_index != ACK_INDEX)
 					{
-						
-						data[MAX_DATA_INDEX - bit_index] = (i2c_sda_io.read() == '0') ? 0 : 1;
+						data_out[MAX_DATA_INDEX - bit_index] = (i2c_sda_io.read() == '0') ? 0 : 1;
+						if (data_type == INNER_ADDRESS)
+						{
+							address_pointer[MAX_DATA_INDEX - bit_index] = (i2c_sda_io.read() == '0') ? 0 : 1;
+						}
+						if (data_type == WDATA)
+						{
+							get_reg(address_pointer).value[MAX_DATA_INDEX - bit_index] = (i2c_sda_io.read() == '0') ? 0 : 1;
+						}
 					}
 					if (data_type == RDATA && bit_index == ACK_INDEX)
 					{
@@ -89,7 +139,7 @@ void slave_driver::emulate_slave()
 					if (bit_index == ACK_INDEX)
 					{
 						bit_index = 0;
-						data_out_bo.write(data);
+						data_out_bo.write(data_out);
 					}
 					else
 					{
@@ -102,22 +152,39 @@ void slave_driver::emulate_slave()
 				if (start_detected)
 				{
 					exec_state = WAIT_SCL0_INIT;
-					data_type = ADDRESS;
+					data_type = DEVICE_ADDRESS;
 					ack = 1;
+					repeat_start = true;
 				}
 				else if (i2c_scl_i.read() == '0') 
 				{
 					exec_state = WAIT_SCL1;
 					if (bit_index == ACK_INDEX)
 					{
+						if ( (data_type == RDATA || data_type == WDATA) && bit_index == ACK_INDEX)
+						{
+							address_pointer++;
+						}
 						release_sda = (data_type == RDATA) ? 1 : 0;
 						if (data_type != RDATA)
 						{
 							sda = 0;
 						}
-						if (data_type == ADDRESS)
+						if (data_type == DEVICE_ADDRESS)
 						{
-							data_type = (data[0] == 1) ? RDATA : WDATA;
+							if (repeat_start)
+							{
+								data_type = (data_out[0] == 1) ? RDATA : WDATA;
+							}
+							else
+							{
+								read_not_write = data_out[0];
+								data_type = INNER_ADDRESS;
+							}
+						}
+						else if (data_type == INNER_ADDRESS)
+						{
+							data_type = (read_not_write) ? RDATA : WDATA;
 						}
 					}
 					else
@@ -132,7 +199,8 @@ void slave_driver::emulate_slave()
 						}
 						if (data_type == RDATA)
 						{
-							sda = data_in[MAX_DATA_INDEX - bit_index];
+							//sda = data_in[MAX_DATA_INDEX - bit_index];
+							sda = get_reg(address_pointer).value[MAX_DATA_INDEX - bit_index];
 						}
 					}
 				}
