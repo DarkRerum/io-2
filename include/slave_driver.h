@@ -11,8 +11,8 @@ SC_MODULE(slave_driver)
     sc_in<bool> rst_i;
     
 	sc_in< sc_uint<7> > self_addr_bi;     // I2C slave self address
-    sc_in< sc_uint<16> > data_in_bi;		// data that can be read from slave
-    sc_out< sc_uint<16> > data_out_bo;     // data written to slave in last transaction
+    //sc_in< sc_uint<16> > data_in_bi;		// data that can be read from slave
+    sc_out< sc_uint<8> > data_out_bo;     // data written to slave in last transaction
     sc_out<bool> ready_o;          		// transaction is not processed now
     
 	// I2C interface
