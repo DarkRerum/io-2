@@ -38,7 +38,7 @@ void DinDout::bus_slave()
 
 void DinDout::user_input()
 {
-    switches = 0x7895;
+    /*switches = 0x7895;
     printf("Switches new state: 0x%04X\n", (unsigned short) switches);
     
     wait(100, SC_NS);
@@ -49,7 +49,7 @@ void DinDout::user_input()
     wait(100, SC_NS);
     
     switches = 0x7744;
-    printf("Switches new state: 0x%04X\n", (unsigned short) switches);
+    printf("Switches new state: 0x%04X\n", (unsigned short) switches);*/
 }
 
 sc_uint<32> DinDout::execute_read(sc_uint<16> addr)

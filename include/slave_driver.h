@@ -8,7 +8,7 @@ SC_MODULE(slave_driver)
     // External interface
     
     sc_in<bool> clk_i;
-    sc_in<bool> rst_i;
+    sc_in<bool> rstn_i;
     
 	sc_in< sc_uint<7> > self_addr_bi;     // I2C slave self address
     //sc_in< sc_uint<16> > data_in_bi;		// data that can be read from slave
@@ -25,17 +25,17 @@ SC_MODULE(slave_driver)
     {
         // Sequential block
         SC_METHOD(listen_start);
-        sensitive << clk_i.pos() << rst_i.pos();
+        sensitive << clk_i.pos() << rstn_i.neg();
         
         SC_METHOD(listen_stop);
-        sensitive << clk_i.pos() << rst_i.pos();
+        sensitive << clk_i.pos() << rstn_i.neg();
 
         SC_METHOD(emulate_slave);
-        sensitive << clk_i.pos() << rst_i.pos();
+        sensitive << clk_i.pos() << rstn_i.neg();
         
         // Combinational block
         SC_METHOD(output_selector);
-        sensitive << clk_i << rst_i;
+        sensitive << clk_i << rstn_i;
     }
     
     // Methods

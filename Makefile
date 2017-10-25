@@ -13,7 +13,7 @@ $(SRC_DIR)/slave_driver.cpp
 
 ####################################
 
-SYSTEMC_HOME =/opt/SOFT/systemc-2.3.1
+SYSTEMC_HOME =/home/igor/Downloads/systemc-2.3.1a
 
 TARGET_ARCH = linux64
 

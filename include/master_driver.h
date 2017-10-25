@@ -6,7 +6,6 @@
 SC_MODULE(master_driver)
 {
     // External interface
-	sc_in<bool> clk_i;
 
 	sc_in<bool> HCLK_i;
     sc_in<bool> HRESETn_i;
@@ -41,13 +40,13 @@ SC_MODULE(master_driver)
     {
         // Sequential block
         SC_METHOD(listen_start);
-        sensitive << clk_i.pos() << HRESETn_i.neg();
+        sensitive << HCLK_i.pos() << HRESETn_i.neg();
 		SC_METHOD(handle_amba);
 		sensitive << HCLK_i.pos() << HRESETn_i.neg();
         
         // Combinational block
         SC_METHOD(output_selector);
-        sensitive << clk_i << HRESETn_i;
+        sensitive << HCLK_i << HRESETn_i;
     }
     
     // Methods

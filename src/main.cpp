@@ -19,8 +19,16 @@ int sc_main(int argc, char* argv[])
     sc_trace(f_trace, ts->hwdata, "hwdata");
     sc_trace(f_trace, ts->hrdata, "hrdata");
     sc_trace(f_trace, ts->hwrite, "hwrite");
+
+    sc_trace(f_trace, ts->s_self_addr, "s_self_addr");
+    sc_trace(f_trace, ts->s_data_out, "s_data_out");
+    sc_trace(f_trace, ts->s_ready, "s_ready");
+
+    sc_trace(f_trace, ts->sda, "sda");
+    sc_trace(f_trace, ts->scl, "scl");
+
     
-    sc_start(300, SC_NS);
+    sc_start(2300, SC_NS);
     sc_stop();
 
     sc_close_vcd_trace_file(f_trace);

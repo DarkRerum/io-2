@@ -3,8 +3,6 @@
 
 using namespace sc_dt;
 
-static const sc_uint<8> self_address = 0x55;
-
 enum {
     MAX_ADDRESS_INDEX = 6,
     MAX_INNER_ADDRESS_INDEX = 7,
@@ -55,27 +53,53 @@ static sc_uint<32>* select_reg(sc_uint<8> address)
 
 void master_driver::handle_amba()
 {
+	static sc_uint<32>* preg;
+	static bool address = true;
+	static bool write = true;
 	if (!HRESETn_i.read())
     {
 		address_reg = 0;
 		start_reg = 0;
 		ready_reg = 0x00000001;
 		data_out_reg = 0;
+		address = true;
+		write = true;
 	}
 	else
 	{
-		if (HADDR_bi.read().range(15, 8) == self_address && HSEL_i.read())
+		if (HSEL_i.read())
 		{
-			sc_uint<32>* preg = select_reg(HADDR_bi.read().range(7,0));
-			if (HWRITE_i.read())
+			
+			if (address)
+			{
+				preg = select_reg(HADDR_bi.read().range(7,0));
+				write = HWRITE_i.read();				
+				if (!HWRITE_i.read())
+				{
+					HRDATA_bo.write(*preg);
+					if (HADDR_bi.read().range(7,0) == 0x10) {
+						std::cout << "###############0x10###########" << address << std::endl;
+						std::cout << " HRDATA: " << (*preg).to_string(SC_HEX) << std::endl;
+					}
+				}
+				address = false;
+			}
+			else if (write)
 			{
 				*preg = HWDATA_bi.read();
+				/*std::cout << "address_reg: " << address_reg.to_string(SC_HEX) <<
+				" start_reg: " << start_reg.to_string(SC_HEX) <<
+				" ready_reg: " << ready_reg.to_string(SC_HEX) <<
+				" data_out_reg: " << data_out_reg.to_string(SC_HEX) << endl;*/
+				address = true;
 			}
 			else
 			{	
-				HRDATA_bo.write(*preg);
+				//HRDATA_bo.write(*preg);
+				address = true;
 			}
 		}
+		
 	}
 }
 

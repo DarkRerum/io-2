@@ -62,7 +62,7 @@ void slave_driver::emulate_slave()
 	
 	//data_out_bo.write(exec_state);
 	
-    if (rst_i.read())
+    if (!rstn_i.read())
     {
 		read_not_write = false;
 		repeat_start = false;
@@ -217,7 +217,7 @@ void slave_driver::listen_start()
 
 	static int start_state;
 	
-	if (rst_i.read())
+	if (!rstn_i.read())
 	{
 		start_state = WAIT_SCL1;
 		start_detected = false;
@@ -261,7 +261,7 @@ void slave_driver::listen_stop()
 
 	static int stop_state;	
 
-	if (rst_i.read())
+	if (!rstn_i.read())
 	{
 		stop_detected = 0;
 		stop_state = WAIT_SCL1;
@@ -297,7 +297,7 @@ void slave_driver::listen_stop()
 
 void slave_driver::output_selector()
 {
-    if (rst_i.read())
+    if (!rstn_i.read())
     {	
         //ready_o.write(true);
     }
