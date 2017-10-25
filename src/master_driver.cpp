@@ -77,10 +77,6 @@ void master_driver::handle_amba()
 				if (!HWRITE_i.read())
 				{
 					HRDATA_bo.write(*preg);
-					if (HADDR_bi.read().range(7,0) == 0x10) {
-						std::cout << "###############0x10###########" << address << std::endl;
-						std::cout << " HRDATA: " << (*preg).to_string(SC_HEX) << std::endl;
-					}
 				}
 				address = false;
 			}
