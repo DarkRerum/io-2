@@ -5,7 +5,6 @@ using namespace sc_dt;
 
 enum {
     MAX_ADDRESS_INDEX = 6,
-    MAX_INNER_ADDRESS_INDEX = 7,
 	MAX_DATA_INDEX = 7,
 	ACK_INDEX = 8,
 	ONE_PAST_LAST_INDEX = 9
@@ -26,8 +25,7 @@ typedef enum {
 } transaction_state_t;
 
 typedef enum {
-	DEVICE_ADDRESS,
-	INNER_ADDRESS,
+	ADDRESS,
 	WDATA,
 	RDATA
 } data_type_t;
@@ -106,18 +104,22 @@ static int bit_index;
 static int bytes_remaining;
 static int max_all_data_index;
 static sc_uint<16> data_out;
-static sc_uint<16> data_in;
+static sc_uint<24> data_in;
 static sc_uint<7> addr_in;
-static sc_uint<8> inner_addr_in;
 static bool read_not_write;
-static bool repeat;
+static bool send_stop;
 
 static bool sda;
 static bool scl;
 
 static sc_uint_bitref & start_bit() 
 {
-	return start_reg[18];
+	return start_reg[28];
+}
+
+static sc_uint_bitref & send_stop_bit()
+{
+	return start_reg[27];
 }
 
 static sc_uint_bitref & ready_bit() 
@@ -127,32 +129,27 @@ static sc_uint_bitref & ready_bit()
 
 static sc_uint_bitref & read_not_write_bit() 
 {
-	return start_reg[16];
+	return start_reg[24];
 }
 
-static sc_uint_bitref & two_bytes_bit()
+static sc_uint_subref & message_size()
 {
-	return start_reg[17];
+	return start_reg.range(26, 25);
 }
 
 static sc_uint_subref & data_to_write() 
 {
-	return start_reg.range(15, 0);
+	return start_reg.range(23, 0);
 }
-static sc_uint_subref & device_address() 
+static sc_uint_subref & address() 
 {
-	return address_reg.range(14, 8);
-}
-static sc_uint_subref & inner_address() 
-{
-	return address_reg.range(7, 0);
+	return address_reg.range(6, 0);
 }
 
 void master_driver::listen_start()
 {
 	if (!HRESETn_i.read())
     {
-		repeat = 0;
 		data_out = 0;
         sda = 1;
 		scl = 1;
@@ -160,36 +157,30 @@ void master_driver::listen_start()
 		bit_index = 0;
 		release_sda = 0;
 		ready_bit() = 1;
-		type = DEVICE_ADDRESS;
+		type = ADDRESS;
 		data_out = 0;
+		send_stop = 0;
 		bytes_remaining = 0;
 		max_all_data_index = 0;
     }
 	else if (start_bit())
 	{
 		start_bit() = 0;
-		repeat = 0;
 		ready_bit() = 0;
 		state = START_BEGIN;
 		release_sda = 0;
         bit_index = 0;
         state = START_BEGIN;
-        type = DEVICE_ADDRESS;
+        type = ADDRESS;
 		data_out = 0;
+		
+		send_stop = send_stop_bit();
 		data_in = data_to_write();
-		addr_in = device_address();
-		inner_addr_in = inner_address();
+		addr_in = address();
 		read_not_write = read_not_write_bit();
-		if (two_bytes_bit()) 
-		{
-			bytes_remaining = 1;
-			max_all_data_index = 15;
-		}
-		else
-		{
-			bytes_remaining = 0;
-			max_all_data_index = 7;
-		}
+		
+		bytes_remaining = message_size();
+		max_all_data_index = ( message_size() * 8 ) - 1;
 	}
 	else 
 	{
@@ -219,50 +210,23 @@ void master_driver::listen_start()
 			case PAUSE_BEGIN:
 			{
 				scl = 0;
-				state = PAUSE;
-				if (bit_index == ONE_PAST_LAST_INDEX)
+				if (bytes_remaining == 0 && bit_index == ONE_PAST_LAST_INDEX) 
 				{
-					//release_sda = read_not_write;
-					if (type == WDATA || type == RDATA)
+					state = STOP_BEGIN;
+				}
+				else if (bit_index == ONE_PAST_LAST_INDEX)
+				{
+					state = PAUSE;
+					
+                    if (type == ADDRESS)
 					{
-						if (bytes_remaining == 0)
-						{
-                        	state = STOP_BEGIN;							
-						}
-						else
-						{
-							
-							bytes_remaining--;
-                        	state = PAUSE;							
-						}
-
-                    }
-                    else if (type == DEVICE_ADDRESS)
-					{
-						if (repeat)
-						{
-							type = (read_not_write) ? RDATA : WDATA;
-						}
-                     	else
-						{
-							type = INNER_ADDRESS;
-						}						
-                    }
-					else if (type == INNER_ADDRESS)
-					{
-						if (read_not_write)
-						{
-							repeat = true;
-							state = START_BEGIN;
-							type = DEVICE_ADDRESS;
-						}
-						else
-						{
-							type = (read_not_write) ? RDATA : WDATA;
-						}
-                        
+						type = (read_not_write) ? RDATA : WDATA;					
                     }
                     bit_index = 0;
+				}
+				else
+				{
+					state = PAUSE;
 				}
 			} break;
                 
@@ -274,7 +238,7 @@ void master_driver::listen_start()
 					{
 						sda = (bytes_remaining == 0) ? 1 : 0;
                         release_sda = (type == RDATA) ? 0 : 1;
-                        state = PAUSE_END;
+						state = PAUSE_END;
 					} break;
                     default:
 					{
@@ -283,18 +247,11 @@ void master_driver::listen_start()
 						{
                             case WDATA:
 							{
-                                //sda = data_in[MAX_DATA_INDEX - bit_index];
 								sda = data_in[max_all_data_index];
-								data_in <<= 1;
                             } break;
-                            case DEVICE_ADDRESS:
+                            case ADDRESS:
 							{
-								bool is_read = read_not_write && repeat;
-                                sda = (bit_index == MAX_DATA_INDEX) ? is_read : addr_in[MAX_ADDRESS_INDEX - bit_index];
-                            } break;
-							case INNER_ADDRESS:
-							{
-                                sda = inner_addr_in[MAX_INNER_ADDRESS_INDEX - bit_index];
+                                sda = (bit_index == MAX_DATA_INDEX) ? read_not_write : addr_in[MAX_ADDRESS_INDEX - bit_index];
                             } break;
 							case RDATA: break;
 							
@@ -308,21 +265,24 @@ void master_driver::listen_start()
 			{
 				scl = 1;
 				state = TRANSIT;
+				if ((type == WDATA || type == RDATA) && bit_index == MAX_DATA_INDEX)
+				{
+					bytes_remaining--;
+                }
+				if ( bit_index != ACK_INDEX && type == WDATA) 
+				{
+					data_in <<= 1;
+				}
+				if ( bit_index != ACK_INDEX && type == RDATA) 
+				{
+					data_out <<= 1;
+				}
 			} break;
                 
             case TRANSIT:
 			{
-                if (bit_index == ACK_INDEX)
-				{
-                    /*if (type != RDATA && i2c_sda_io.read() != '0') // Critical
-					{
-                        error_o.write(1);
-                    }*/
-                }
-                else if (type == RDATA)
-				{
-					//data_out[MAX_DATA_INDEX - bit_index] = (i2c_sda_io.read() == '1') ? 1 : 0;
-					data_out <<= 1;
+                if (bit_index != ACK_INDEX &&type == RDATA)
+				{	
 					data_out[0] = (i2c_sda_io.read() == '1') ? 1 : 0;
                 }
                 bit_index = bit_index + 1;
@@ -338,12 +298,12 @@ void master_driver::listen_start()
                 
 			case STOP_MIDDLE:
 			{
-                scl = 1;
+                scl = (send_stop) ? 1 : 0;
 				state = STOP_END;
 			} break;
             case STOP_END:
 			{
-                sda = 1;
+                sda = (send_stop) ? 1 : 0;
 				ready_bit() = 1;
                 state = NONE;
 			} break;

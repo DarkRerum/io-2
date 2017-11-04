@@ -57,6 +57,9 @@ CC=$(CXX)
 sc_executable: $(SRCS) $(SYSTEMC_LIB_DIR)/libsystemc.a
 	$(CC) $(CXXFLAGS) $(LDFLAGS) -o $@ $(SRCS) $(LIBS) 2>&1
 
+clean:
+	rm -f sc_executable *.out *.vcd
+
 all: sc_executable
 
 run: sc_executable

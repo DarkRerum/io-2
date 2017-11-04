@@ -43,15 +43,15 @@ void CPU::bus_trans(sc_uint<32> addr, sc_uint<32> *data, bool write)
     hwrite_o.write(write);
 	wait(); 
 	hwrite_o.write(false);
-	std::cout << "address: " << addr.to_string(SC_HEX) << std::endl;
+	//std::cout << "address: " << addr.to_string(SC_HEX) << std::endl;
    
     if (write)
     {
         hwdata_bo.write(*data);
 		wait();
-        cout << "CPU WRITE" << endl;
-        cout << "  -> addr: 0x" << hex << addr << endl;
-        cout << "  -> data: 0x" << hex << *data << endl;
+        //cout << "CPU WRITE" << endl;
+        //cout << "  -> addr: 0x" << hex << addr << endl;
+        //cout << "  -> data: 0x" << hex << *data << endl;
 
     }
     else
@@ -59,8 +59,8 @@ void CPU::bus_trans(sc_uint<32> addr, sc_uint<32> *data, bool write)
         wait();
         *data = hrdata_bi.read();
         
-        cout << "CPU READ" << endl;
-        cout << "  -> addr: 0x" << hex << addr << endl;
-        cout << "  -> data: 0x" << hex << *data << endl;
+        //cout << "CPU READ" << endl;
+        //cout << "  -> addr: 0x" << hex << addr << endl;
+        //cout << "  -> data: 0x" << hex << *data << endl;
     }
 }
