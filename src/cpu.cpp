@@ -49,9 +49,9 @@ void CPU::bus_trans(sc_uint<32> addr, sc_uint<32> *data, bool write)
     {
         hwdata_bo.write(*data);
 		wait();
-        //cout << "CPU WRITE" << endl;
-        //cout << "  -> addr: 0x" << hex << addr << endl;
-        //cout << "  -> data: 0x" << hex << *data << endl;
+        cout << "CPU WRITE" << endl;
+        cout << "  -> addr: 0x" << hex << addr << endl;
+        cout << "  -> data: 0x" << hex << *data << endl;
 
     }
     else
@@ -59,8 +59,8 @@ void CPU::bus_trans(sc_uint<32> addr, sc_uint<32> *data, bool write)
         wait();
         *data = hrdata_bi.read();
         
-        //cout << "CPU READ" << endl;
-        //cout << "  -> addr: 0x" << hex << addr << endl;
-        //cout << "  -> data: 0x" << hex << *data << endl;
+        cout << "CPU READ" << endl;
+        cout << "  -> addr: 0x" << hex << addr << endl;
+        cout << "  -> data: 0x" << hex << *data << endl;
     }
 }

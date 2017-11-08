@@ -14,8 +14,8 @@ typedef struct reg_t {
 } reg_t;
 
 static reg_t registers[] = {
-	{0x00, 0x39}, // temperature_value_msb
-	{0x01, 0x7D}, // temperature_value_lsb
+	{0x00, 0x01}, // temperature_value_msb
+	{0x01, 0x90}, // temperature_value_lsb
 	{0x02, 0x00}, // status
 	{0x03, 0x00}, // configuration
 	{0x04, 0x00}, // t_high_setpoint_msb

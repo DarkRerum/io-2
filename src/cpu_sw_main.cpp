@@ -109,7 +109,25 @@ void cpu_main()
         data = get_temperature();
         printf("Software reads from therm: 0x%04X\n", data);
         
-        //data = ~data;
+		sc_int<13> temp_value = data;
+		int temperature = temp_value * 0.0625;
+		
+		if (temperature > 32) 
+		{
+			data = 0xFFFF;
+		}
+		else if (temperature < 0)
+		{
+			data = 0x0000;
+		}
+		else {
+			data = 0x0000;
+			while (temperature > 0) {
+				temperature -= 2;
+				data <<= 1;
+				data += 1;
+			}
+		}
         
         printf("Software writes to leds:   0x%04X\n", data);
         dout_write(data);
