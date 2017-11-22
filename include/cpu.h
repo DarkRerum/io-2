@@ -10,7 +10,6 @@ SC_MODULE(CPU)
     sc_out<sc_uint<32> > hwdata_bo;
     sc_in<sc_uint<32> >  hrdata_bi;
     sc_out<bool> hwrite_o;
-	sc_in<bool> rst_n_i;
     
     SC_CTOR(CPU)
     {
@@ -26,7 +25,6 @@ SC_MODULE(CPU)
     
 private:
     void cpu_software();
-	void select_device(unsigned long addr);
 };
 
 #endif // __CPU_H

@@ -48,8 +48,48 @@ static sc_uint<32>* select_reg(sc_uint<8> address)
 	}
 }
 
-
 void master_driver::handle_amba()
+{
+	static sc_uint<32>* preg;
+	static bool address = true;
+	static bool write = false;
+	if (!HRESETn_i.read())
+    {
+		address_reg = 0;
+		start_reg = 0;
+		ready_reg = 0x00000001;
+		data_out_reg = 0;
+		address = true;
+		write = false;
+	}
+	else
+	{
+		if (address)
+		{
+			address = false;
+			if (write && HSEL_i.read()) {
+				*preg = HWDATA_bi.read();
+				std::cout << "address_reg: " << address_reg.to_string(SC_HEX) <<
+				" start_reg: " << start_reg.to_string(SC_HEX) <<
+				" ready_reg: " << ready_reg.to_string(SC_HEX) <<
+				" data_out_reg: " << data_out_reg.to_string(SC_HEX) << endl;
+			}
+		}
+		else
+		{
+			address = true;
+			preg = select_reg(HADDR_bi.read().range(7,0));
+			write = HWRITE_i.read();
+			if (HSEL_i.read() && !write) 
+			{
+				HRDATA_bo.write(*preg);
+			}
+		}
+	
+	}
+}
+
+/*void master_driver::handle_amba()
 {
 	static sc_uint<32>* preg;
 	static bool address = true;
@@ -65,37 +105,37 @@ void master_driver::handle_amba()
 	}
 	else
 	{
-		if (HSEL_i.read())
+		if (address)
 		{
-			
-			if (address)
-			{
-				preg = select_reg(HADDR_bi.read().range(7,0));
-				write = HWRITE_i.read();				
-				if (!HWRITE_i.read())
-				{
-					HRDATA_bo.write(*preg);
-				}
-				address = false;
-			}
-			else if (write)
-			{
+			preg = select_reg(HADDR_bi.read().range(7,0));
+			write = HWRITE_i.read();
+			address = false;
+			HRDATA_bo.write(0xAAAAAAAA);
+		}
+		else if (write)
+		{
+			if (HSEL_i.read()) {
 				*preg = HWDATA_bi.read();
-				/*std::cout << "address_reg: " << address_reg.to_string(SC_HEX) <<
+				std::cout << "address_reg: " << address_reg.to_string(SC_HEX) <<
 				" start_reg: " << start_reg.to_string(SC_HEX) <<
 				" ready_reg: " << ready_reg.to_string(SC_HEX) <<
-				" data_out_reg: " << data_out_reg.to_string(SC_HEX) << endl;*/
+				" data_out_reg: " << data_out_reg.to_string(SC_HEX) << endl;
+					HRDATA_bo.write(0xBBBBBBBB);
 				address = true;
 			}
-			else
-			{	
-				//HRDATA_bo.write(*preg);
+			
+		}
+		else
+		{	
+			if (HSEL_i.read()) {
+							HRDATA_bo.write(0xCCCCCCCC);
 				address = true;
+				//HRDATA_bo.write(*preg);
 			}
 		}
-		
+	
 	}
-}
+}*/
 
 static transaction_state_t state;
 static data_type_t type;

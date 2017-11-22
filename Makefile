@@ -9,7 +9,8 @@ $(SRC_DIR)/cpu_sw_main.cpp \
 $(SRC_DIR)/din_dout.cpp \
 $(SRC_DIR)/main.cpp \
 $(SRC_DIR)/master_driver.cpp \
-$(SRC_DIR)/slave_driver.cpp
+$(SRC_DIR)/slave_driver.cpp \
+$(SRC_DIR)/switch.cpp
 
 ####################################
 

@@ -42,7 +42,7 @@ SC_MODULE(master_driver)
         SC_METHOD(listen_start);
         sensitive << HCLK_i.pos() << HRESETn_i.neg();
 		SC_METHOD(handle_amba);
-		sensitive << HCLK_i.pos() << HRESETn_i.neg();
+		sensitive << HCLK_i.pos();
         
         // Combinational block
         SC_METHOD(output_selector);
